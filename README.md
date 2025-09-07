@@ -6,5 +6,5 @@
 
 Folgende Module beinhaltet das Aktivliste Repository:
 
-- __Aktivliste__ ([Dokumentation](https://www.symcon.de/de/service/dokumentation/modulreferenz/aktivliste))  
+- __Aktivliste__ ([Dokumentation](https://www.symcon.de/de/service/dokumentation/modulreferenz/aktivliste/))  
 	Zeigt alle aktiven Variablen im WebFront an und erlaubt das deaktivieren dieser.
