@@ -319,8 +319,7 @@ class ActiveList extends IPSModule
                 } else {
                     return 0;
                 }
-
-            // String
+                // no break
             case 3:
                 return '';
         }
