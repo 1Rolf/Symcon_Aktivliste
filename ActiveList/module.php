@@ -301,14 +301,16 @@ class ActiveList extends IPSModule
      */
     private function GetSwitchValue($VariableID)
     {
+        //Return the value corresponding to the variable type.
         switch (IPS_GetVariable($VariableID)['VariableType']) {
-            // Boolean
+            //Boolean
             case 0:
                 return $this->IsProfileInverted($VariableID);
 
-            // Integer + Float
+                //Integer
             case 1:
-                // no break
+
+                //Float
             case 2:
                 if (IPS_VariableProfileExists($this->GetVariableProfile($VariableID))) {
                     if ($this->IsProfileInverted($VariableID)) {
@@ -319,9 +321,14 @@ class ActiveList extends IPSModule
                 } else {
                     return 0;
                 }
+
                 // no break
+                //Integer
+                // FIXME: No break. Please add proper comment if intentional
+                // No break. Add additional comment above this line if intentional
             case 3:
                 return '';
+
         }
     }
 
