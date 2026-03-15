@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * ActiveList – Extended Active List for IP-Symcon
+ * ActiveList - Extended Active List for IP-Symcon
  *
  * Displays all active variables in the WebFront and allows switching them off.
  *
@@ -13,7 +13,7 @@ declare(strict_types=1);
  * - Status variable "ActiveHTML" (string): HTML list of all active elements (~HTMLBox)
  *
  * These three variables are automatically updated on every value change
- * of a monitored variable (via MessageSink → UpdateStatusVariables).
+ * of a monitored variable (via MessageSink -> UpdateStatusVariables).
  */
 class ActiveList extends IPSModule
 {
@@ -46,7 +46,7 @@ class ActiveList extends IPSModule
         $this->RegisterVariableInteger('ActiveCount', $this->Translate('Active Count'), '', 11);
         $this->RegisterVariableString('ActiveHTML', $this->Translate('Active List'), '~HTMLBox', 12);
 
-        // Note: No EnableAction() – these variables are intentionally read-only
+        // Note: No EnableAction() - these variables are intentionally read-only
         // in the WebFront since they only reflect calculated status.
 
         //----------------------------------------------------------------------
@@ -85,7 +85,7 @@ class ActiveList extends IPSModule
         // Remove links whose target variable is no longer in the list
         //----------------------------------------------------------------------
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $linkID) {
-            // Only check links – status variables and scripts are skipped
+            // Only check links - status variables and scripts are skipped
             if (IPS_LinkExists($linkID)) {
                 if (!in_array(IPS_GetLink($linkID)['TargetID'], $variableIDs)) {
                     $this->UnregisterMessage(IPS_GetLink($linkID)['TargetID'], VM_UPDATE);
@@ -112,7 +112,7 @@ class ActiveList extends IPSModule
     }
 
     /**
-     * MessageSink – called by IP-Symcon for every registered message.
+     * MessageSink - called by IP-Symcon for every registered message.
      * Reacts to VM_UPDATE of monitored variables.
      */
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -175,7 +175,7 @@ class ActiveList extends IPSModule
                 $linkName = '';
                 switch ($Type) {
                     case 0:
-                        // Leave empty – name is inherited from the target variable
+                        // Leave empty - name is inherited from the target variable
                         break;
                     case 1:
                         $linkName = IPS_GetName(IPS_GetParent($variableID));
@@ -213,9 +213,9 @@ class ActiveList extends IPSModule
      * Calculates the current status of all monitored variables and updates
      * the three status variables:
      *
-     *   Active      (bool)   – true if at least one variable is active
-     *   ActiveCount (int)    – Number of active variables
-     *   ActiveHTML  (string) – HTML <ul> list of active variable names
+     *   Active      (bool)   - true if at least one variable is active
+     *   ActiveCount (int)    - Number of active variables
+     *   ActiveHTML  (string) - HTML <ul> list of active variable names
      *
      * "Active" means: The current value differs from the "off" value (GetSwitchValue).
      *
@@ -237,7 +237,7 @@ class ActiveList extends IPSModule
         $activeCount = 0;
 
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $childID) {
-            // Only process links – status variables (Active, ActiveCount, ActiveHTML)
+            // Only process links - status variables (Active, ActiveCount, ActiveHTML)
             // and the TurnOff script are filtered out by IPS_LinkExists()
             if (!IPS_LinkExists($childID)) {
                 continue;
@@ -250,7 +250,7 @@ class ActiveList extends IPSModule
                 continue;
             }
 
-            // Comparison: current value != "off" value → element is active
+            // Comparison: current value != "off" value -> element is active
             //
             // IMPORTANT: Use loose comparison (!=), consistent with MessageSink (==).
             // GetSwitchValue() returns bool for boolean variables and numeric values
@@ -260,7 +260,7 @@ class ActiveList extends IPSModule
                 $activeCount++;
 
                 // Determine display name: link name takes priority.
-                // An empty link name means the name is inherited from the target object –
+                // An empty link name means the name is inherited from the target object -
                 // in that case, use the target variable name directly.
                 $name = IPS_GetName($childID);
                 if ($name === '') {
