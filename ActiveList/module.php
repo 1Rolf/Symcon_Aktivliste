@@ -306,8 +306,9 @@ class ActiveList extends IPSModule
             case 0:
                 return $this->IsProfileInverted($VariableID);
 
-            // Integer + Float (intentional fall-through)
+            // Integer + Float
             case 1:
+                // no break
             case 2:
                 if (IPS_VariableProfileExists($this->GetVariableProfile($VariableID))) {
                     if ($this->IsProfileInverted($VariableID)) {
