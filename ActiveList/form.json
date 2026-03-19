@@ -6,6 +6,89 @@
             "name": "TurnOffAction"
         },
         {
+            "type": "ExpansionPanel",
+            "caption": "Status Variables",
+            "items": [
+                {
+                    "type": "CheckBox",
+                    "name": "EnableActive",
+                    "caption": "Enable Active Variable (Bool)"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "EnableActiveCount",
+                    "caption": "Enable Active Count Variable (Integer)"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "EnableActiveHTML",
+                    "caption": "Enable Active List Variable (HTML)"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "FontSize",
+                    "caption": "Font Size (px, 0 = Default)",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "suffix": "px"
+                }
+            ]
+        },
+        {
+            "type": "List",
+            "name": "VariableList",
+            "caption": "Variables",
+            "add": true,
+            "delete": true,
+            "columns": [
+                {
+                    "caption": "Variable",
+                    "name": "VariableID",
+                    "width": "auto",
+                    "add": 0,
+                    "edit": {
+                        "type": "SelectVariable"
+                    }
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "Button",
+                    "caption": "Reset Link Names",
+                    "onClick": "AL_UpdateLinkNames($id, 0);"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Update Link Names (One Level)",
+                    "onClick": "AL_UpdateLinkNames($id, 1);"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Update Link Names (Two Levels)",
+                    "onClick": "AL_UpdateLinkNames($id, 2);"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Update Link Names (Full Location)",
+                    "onClick": "AL_UpdateLinkNames($id, 99);"
+                }
+            ]
+        }
+    ]
+}
+{
+    "elements": [
+        {
+            "type": "CheckBox",
+            "caption": "Turn Off Action",
+            "name": "TurnOffAction"
+        },
+        {
             "type": "List",
             "name": "VariableList",
             "caption": "Variables",
