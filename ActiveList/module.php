@@ -25,6 +25,10 @@ class ActiveList extends IPSModule
         // Register configuration properties
         $this->RegisterPropertyString('VariableList', '[]');    // JSON array of monitored variable IDs
         $this->RegisterPropertyBoolean('TurnOffAction', true);  // Should the "Turn Off" button be displayed?
+        $this->RegisterPropertyBoolean('EnableActive', false);      // Enable "Active" status variable (bool)
+        $this->RegisterPropertyBoolean('EnableActiveCount', false); // Enable "Active Count" status variable (int)
+        $this->RegisterPropertyBoolean('EnableActiveHTML', false);  // Enable "Active List" status variable (HTML)
+        $this->RegisterPropertyInteger('FontSize', 0);              // Font size in px for HTML list (0 = default/inherit)
     }
 
     public function Destroy()
@@ -39,12 +43,27 @@ class ActiveList extends IPSModule
         parent::ApplyChanges();
 
         //----------------------------------------------------------------------
-        // Register new status variables (only created on first run,
-        // existing values are preserved on subsequent calls)
+        // Register or unregister status variables based on configuration.
+        // Variables are only created when enabled; when disabled, existing
+        // variables are removed to keep the instance clean.
         //----------------------------------------------------------------------
-        $this->RegisterVariableBoolean('Active', $this->Translate('Active'), '~Switch', 10);
-        $this->RegisterVariableInteger('ActiveCount', $this->Translate('Active Count'), '', 11);
-        $this->RegisterVariableString('ActiveHTML', $this->Translate('Active List'), '~HTMLBox', 12);
+        if ($this->ReadPropertyBoolean('EnableActive')) {
+            $this->RegisterVariableBoolean('Active', $this->Translate('Active'), '~Switch', 10);
+        } elseif (@$this->GetIDForIdent('Active')) {
+            $this->UnregisterVariable('Active');
+        }
+
+        if ($this->ReadPropertyBoolean('EnableActiveCount')) {
+            $this->RegisterVariableInteger('ActiveCount', $this->Translate('Active Count'), '', 11);
+        } elseif (@$this->GetIDForIdent('ActiveCount')) {
+            $this->UnregisterVariable('ActiveCount');
+        }
+
+        if ($this->ReadPropertyBoolean('EnableActiveHTML')) {
+            $this->RegisterVariableString('ActiveHTML', $this->Translate('Active List'), '~HTMLBox', 12);
+        } elseif (@$this->GetIDForIdent('ActiveHTML')) {
+            $this->UnregisterVariable('ActiveHTML');
+        }
 
         // Note: No EnableAction() - these variables are intentionally read-only
         // in the WebFront since they only reflect calculated status.
@@ -68,15 +87,18 @@ class ActiveList extends IPSModule
             $this->RegisterMessage($variableID, VM_UPDATE);
             $this->RegisterReference($variableID);
 
-            // Only create link if it doesn't exist yet
+            // Create link if it doesn't exist yet
             if (!@$this->GetIDForIdent('Link' . $variableID)) {
                 $linkID = IPS_CreateLink();
                 IPS_SetParent($linkID, $this->InstanceID);
                 IPS_SetLinkTargetID($linkID, $variableID);
                 IPS_SetIdent($linkID, 'Link' . $variableID);
+            }
 
-                // Initial visibility: hidden if variable is in "off" state
-                // Loose comparison (==) intentional, since GetSwitchValue returns mixed types
+            // Always recalculate visibility for all links (new and existing),
+            // so the WebFront is in sync even if values changed between ApplyChanges calls
+            $linkID = @$this->GetIDForIdent('Link' . $variableID);
+            if ($linkID) {
                 IPS_SetHidden($linkID, (GetValue($variableID) == $this->GetSwitchValue($variableID)));
             }
         }
@@ -106,9 +128,11 @@ class ActiveList extends IPSModule
         }
 
         //----------------------------------------------------------------------
-        // Calculate initial status variable values
+        // Calculate initial status variable values (only if at least one enabled)
         //----------------------------------------------------------------------
-        $this->UpdateStatusVariables();
+        if ($this->HasEnabledStatusVariables()) {
+            $this->UpdateStatusVariables();
+        }
     }
 
     /**
@@ -122,8 +146,10 @@ class ActiveList extends IPSModule
             $linkID = $this->GetIDForIdent('Link' . $SenderID);
             IPS_SetHidden($linkID, $Data[0] == $this->GetSwitchValue($SenderID));
 
-            // Recalculate status variables (Active, ActiveCount, ActiveHTML)
-            $this->UpdateStatusVariables();
+            // Recalculate status variables only if at least one is enabled
+            if ($this->HasEnabledStatusVariables()) {
+                $this->UpdateStatusVariables();
+            }
         }
     }
 
@@ -210,13 +236,27 @@ class ActiveList extends IPSModule
     //==========================================================================
 
     /**
+     * Returns true if at least one status variable is enabled in the configuration.
+     * Used to skip unnecessary processing in MessageSink and ApplyChanges.
+     */
+    private function HasEnabledStatusVariables()
+    {
+        // Suppress warnings: properties may not exist on instances created before
+        // this module version. In that case, treat as disabled (return false).
+        return @$this->ReadPropertyBoolean('EnableActive')
+            || @$this->ReadPropertyBoolean('EnableActiveCount')
+            || @$this->ReadPropertyBoolean('EnableActiveHTML');
+    }
+
+    /**
      * Calculates the current status of all monitored variables and updates
-     * the three status variables:
+     * the enabled status variables:
      *
      *   Active      (bool)   - true if at least one variable is active
      *   ActiveCount (int)    - Number of active variables
      *   ActiveHTML  (string) - HTML <ul> list of active variable names
      *
+     * Each variable is only updated if enabled in the configuration.
      * "Active" means: The current value differs from the "off" value (GetSwitchValue).
      *
      * Performance note: This method iterates over all child objects of the instance
@@ -226,10 +266,27 @@ class ActiveList extends IPSModule
      */
     private function UpdateStatusVariables()
     {
-        // Guard clause: Status variables only exist after ApplyChanges().
-        // MessageSink may fire before that (e.g. right after a module update),
-        // so abort here if the variables have not been registered yet.
-        if (@$this->GetIDForIdent('Active') === false) {
+        // Check which status variables are enabled
+        // Suppress warnings: properties may not exist on pre-update instances
+        $enableActive = @$this->ReadPropertyBoolean('EnableActive');
+        $enableCount = @$this->ReadPropertyBoolean('EnableActiveCount');
+        $enableHTML = @$this->ReadPropertyBoolean('EnableActiveHTML');
+
+        // Skip entirely if no status variables are enabled
+        if (!$enableActive && !$enableCount && !$enableHTML) {
+            return;
+        }
+
+        // Guard clause: enabled status variables must exist (created in ApplyChanges).
+        // MessageSink may fire before ApplyChanges (e.g. right after a module update).
+        // Using falsy check since GetIDForIdent may return 0 or false for missing idents.
+        if ($enableActive && !@$this->GetIDForIdent('Active')) {
+            return;
+        }
+        if ($enableCount && !@$this->GetIDForIdent('ActiveCount')) {
+            return;
+        }
+        if ($enableHTML && !@$this->GetIDForIdent('ActiveHTML')) {
             return;
         }
 
@@ -259,34 +316,44 @@ class ActiveList extends IPSModule
             if (GetValue($targetID) != $this->GetSwitchValue($targetID)) {
                 $activeCount++;
 
-                // Determine display name: link name takes priority.
-                // An empty link name means the name is inherited from the target object -
-                // in that case, use the target variable name directly.
-                $name = IPS_GetName($childID);
-                if ($name === '') {
-                    $name = IPS_GetName($targetID);
+                // Only collect names if the HTML list is enabled
+                if ($enableHTML) {
+                    $name = IPS_GetName($childID);
+                    if ($name === '') {
+                        $name = IPS_GetName($targetID);
+                    }
+                    $activeNames[] = $name;
                 }
-                $activeNames[] = $name;
             }
         }
 
-        // Bool: is anything active?
-        $this->SetValue('Active', $activeCount > 0);
-
-        // Number of active elements
-        $this->SetValue('ActiveCount', $activeCount);
-
-        // Build HTML list (empty if nothing is active)
-        $html = '';
-        if ($activeCount > 0) {
-            $html = '<ul style="margin:0; padding-left:20px;">' . PHP_EOL;
-            foreach ($activeNames as $name) {
-                // htmlspecialchars() to protect against XSS from special characters in variable names
-                $html .= '  <li>' . htmlspecialchars($name) . '</li>' . PHP_EOL;
-            }
-            $html .= '</ul>';
+        // Update only enabled variables
+        if ($enableActive) {
+            $this->SetValue('Active', $activeCount > 0);
         }
-        $this->SetValue('ActiveHTML', $html);
+
+        if ($enableCount) {
+            $this->SetValue('ActiveCount', $activeCount);
+        }
+
+        if ($enableHTML) {
+            // Sort alphabetically for consistent, user-friendly display
+            sort($activeNames);
+            $html = '';
+            if ($activeCount > 0) {
+                $fontSize = @$this->ReadPropertyInteger('FontSize');
+                $style = 'margin:0; padding-left:20px;';
+                if ($fontSize > 0) {
+                    $style .= ' font-size:' . $fontSize . 'px;';
+                }
+                $html = '<ul style="' . $style . '">' . PHP_EOL;
+                foreach ($activeNames as $name) {
+                    $html .= '  <li>' . htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>' . PHP_EOL;
+                }
+                $html .= '</ul>';
+            }
+            $this->SetValue('ActiveHTML', $html);
+        }
     }
 
     //==========================================================================
